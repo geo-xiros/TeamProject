@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
@@ -12,26 +13,8 @@ namespace TeamProject.Managers
 {
     public class BranchFacilitiesManager : TableManager<BranchFacilities>
     {
-        public BranchFacilitiesManager(ProjectDbContext projectDbContext) 
+        public BranchFacilitiesManager(ProjectDbContext projectDbContext)
         {
-            //_queryParts = new Dictionary<string, string>()
-            //{
-            //    { "InsertQuery",
-            //        "INSERT INTO BranchFacilities ([BranchId], [FacilityId]) " +
-            //        "VALUES (@BranchId, @FacilityId) " +
-            //        "SELECT * FROM BranchFacilities WHERE BranchId=@BranchId AND FacilityId=@FacilityId"},
-            //    { "UpdateQuery",
-            //        "UPDATE BranchFacilities SET " +
-            //        "[BranchId]=@BranchId, [FacilityId]=@FacilityId " +
-            //        "WHERE BranchId = @Id"}
-            //};
-            // TODO : set Id = BranchId for update, BranchId and FacilityId to get inserted record
-            // Id should be replaced with BranchId for delete, update action
-            // Id = (SELECT SCOPE_IDENTITY()) should be replaced with BranchId=@BranchId AND FacilityId=@FacilityId
-            AddField(bf => bf.BranchId);
-            AddField(bf => bf.FacilityId);
-            PrepareQueries();
-
             _db = projectDbContext;
         }
 
@@ -61,30 +44,45 @@ namespace TeamProject.Managers
             return BranchFacilities;
         }
 
-        public IList<SelectListItem> GetFacilities(int branchId)
+        public IEnumerable<SelectListItem> GetFacilities(int branchId)
         {
-            // TODO: Refactor this maybe using linq union
-            var allFacilities = _db.Facilities.Get().Select(f => new SelectListItem()
-            {
-                Text = f.Description,
-                Value = f.Id.ToString()
-            });
+            // get list of all facilities
+            var allFacilities = _db.Facilities.Get()
+                .Select(ConvertFacilityToBranchFacility);
 
-            var selectedFacilities = Get()
-                .Where(f => f.BranchId == branchId)
-                .Select(f => new SelectListItem()
-                {
-                    Value = f.FacilityId.ToString()
-                });
+            // get list of branch selected facilities 
+            var selectedFacilities = Get("BranchId = @branchId", new { branchId });
 
-            return allFacilities.Select((f) =>
+            // union selected facilities with available and
+            // convert to SelectListItem list oredered by facility description
+            return selectedFacilities
+                .Union(allFacilities)
+                .Select(ConvertToSelectListItem)
+                .OrderBy(f => f.Text);
+        }
+
+        // convert to SelectListItem
+        private SelectListItem ConvertToSelectListItem(BranchFacilities branchFacility)
+        {
+            return new SelectListItem()
             {
-                if (selectedFacilities.Any(bf => bf.Value == f.Value))
+                Text = branchFacility.Facility.Description,
+                Value = branchFacility.FacilityId.ToString(),
+                Selected = branchFacility.BranchId != 0
+            };
+        }
+
+        // convert to BranchFacilities 
+        private BranchFacilities ConvertFacilityToBranchFacility(Facility facility)
+        {
+            return new BranchFacilities()
+            {
+                FacilityId = facility.Id,
+                Facility = new Facility()
                 {
-                    f.Selected = true;
+                    Description = facility.Description
                 }
-                return f;
-            }).ToList();
+            };
         }
     }
 }
