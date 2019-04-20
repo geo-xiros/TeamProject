@@ -11,17 +11,15 @@ namespace TeamProject.Areas.Admin.Controllers
     [Authorize(Roles = "Owner,Admin")]
     public class BranchFacilitiesController : Controller
     {
-        private ProjectDbContext db = new ProjectDbContext();
-        
+        private TeamProjectApp app = new TeamProjectApp();
+
         public ActionResult ChooseFacilities(int id)
         {
-            var facilityFormModel = new FacilityFormModel()
+            return View(new FacilityFormModel()
             {
-                AvailableFacilities = db.BranchFacilities.GetFacilities(id),
+                AvailableFacilities = app.GetAvailableFacilities(id),
                 BranchId = id
-            };
-
-            return View(facilityFormModel);
+            });
         }
 
         [HttpPost]
@@ -29,24 +27,15 @@ namespace TeamProject.Areas.Admin.Controllers
         {
             if (!ModelState.IsValid)
             {
-                facilityFormModel.AvailableFacilities = db.BranchFacilities.GetFacilities(facilityFormModel.BranchId);
+                facilityFormModel.AvailableFacilities = app.GetAvailableFacilities(facilityFormModel.BranchId);
                 return View(facilityFormModel);
             }
 
-            // remove all branch facilities
-            db.BranchFacilities.Remove(facilityFormModel.BranchId);
-
-            // add selected facilities
-            if (facilityFormModel.SelectedFacilities != null)
-            {
-                foreach (var item in facilityFormModel.SelectedFacilities)
-                {
-                    db.BranchFacilities.Add(new BranchFacilities() { BranchId = facilityFormModel.BranchId, FacilityId = item });
-                }
-            }
+            app.UpdateBranchFacilities(facilityFormModel);
 
             return RedirectToAction("Index", "Branches");
         }
+
 
     }
 }

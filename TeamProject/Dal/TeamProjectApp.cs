@@ -5,6 +5,7 @@ using System.Data;
 using System.Globalization;
 using System.Linq;
 using System.Web;
+using System.Web.Mvc;
 using TeamProject.Managers;
 using TeamProject.Models;
 using TeamProject.ModelsViews;
@@ -136,6 +137,42 @@ namespace TeamProject.Dal
                 Longitude = longitudeFixed,
                 Branches = branches
             };
+        }
+        #endregion
+        #region BranchFacilities
+        /// <summary>
+        /// returns a list of SelectListItem with branch selected facilities (with selected=true)
+        /// plus available facilities from list
+        /// </summary>
+        /// <param name="branchId"></param>
+        /// <returns></returns>
+        public IEnumerable<SelectListItem> GetAvailableFacilities(int branchId)
+        {
+            
+            var branchSelectedFacilities = _db.BranchFacilities
+                .Get("BranchId = @branchId", new { branchId })
+                .Select(f => f.FacilityId);
+
+            return new MultiSelectList(_db.Facilities.All.OrderBy(f=>f.Description), "Id", "Description", branchSelectedFacilities);
+        }
+        /// <summary>
+        /// update selected facilities by first delete all records
+        /// and then insert only selected ones
+        /// </summary>
+        /// <param name="facilityFormModel"></param>
+        public void UpdateBranchFacilities(FacilityFormModel facilityFormModel)
+        {
+            // remove all branch facilities
+            _db.BranchFacilities.Remove(facilityFormModel.BranchId);
+
+            // add selected facilities
+            if (facilityFormModel.SelectedFacilities != null)
+            {
+                foreach (var item in facilityFormModel.SelectedFacilities)
+                {
+                    _db.BranchFacilities.Add(new BranchFacilities() { BranchId = facilityFormModel.BranchId, FacilityId = item });
+                }
+            }
         }
         #endregion
         #region Bookings
