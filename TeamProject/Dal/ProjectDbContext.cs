@@ -3,6 +3,8 @@ using System.Configuration;
 using System.Data.Common;
 using System.Data.SqlClient;
 using TeamProject.Managers;
+using TeamProject.Models;
+
 namespace TeamProject.Dal
 {
     public class ProjectDbContext
@@ -15,17 +17,21 @@ namespace TeamProject.Dal
         public ProjectDbContext()
         {
             _connectionString = ConfigurationManager.ConnectionStrings["ConnectionString"].ConnectionString;
-            Courts = new CourtManager(this);
+
+            // TODO : initialize entities managers using Dependency Injection
+            Bookings = new BookingManager(this);
             Branches = new BranchManager(this);
             BranchFacilities = new BranchFacilitiesManager(this);
-            Users = new UserManager(this);
+            Courts = new CourtManager(this);
             Facilities = new FacilityManager(this);
-            UserRoles = new UserRolesManager(this);
-            TimeSlots = new TimeSlotManager(this);
             Reviews = new ReviewManager(this);
-            Bookings = new BookingManager(this);
-            Roles= new RoleManager(this);
+            Roles = new RoleManager(this);
+            TimeSlots = new TimeSlotManager(this);
+            Users = new UserManager(this);
+            UserRoles = new UserRolesManager(this);
         }
+
+        // TODO : use OperationResult to get error message
         public void UsingConnection(Action<SqlConnection> action)
         {
             LastActionError = string.Empty;
@@ -41,15 +47,17 @@ namespace TeamProject.Dal
                 LastActionError = e.Message;
             }
         }
-        public CourtManager Courts { get; set; }
-        public BranchManager Branches { get; set; }
-        public BranchFacilitiesManager BranchFacilities { get; set; }
-        public UserManager Users { get; set; }
-        public UserRolesManager UserRoles { get; set; }
-        public FacilityManager Facilities { get; set; }
-        public TimeSlotManager TimeSlots { get; set; }
-        public ReviewManager Reviews { get; set; }
-        public BookingManager Bookings { get; set; }
-        public RoleManager Roles { get; set; }
+
+        public IDatabaseActions<Booking> Bookings { get; set; }
+        public IDatabaseActions<Branch> Branches { get; set; }
+        public IDatabaseActions<BranchFacilities> BranchFacilities { get; set; }
+        public IDatabaseActions<Court> Courts { get; set; }
+        public IDatabaseActions<Facility> Facilities { get; set; }
+        public IDatabaseActions<TimeSlot> TimeSlots { get; set; }
+        public IDatabaseActions<Review> Reviews { get; set; }
+        public IDatabaseActions<Role> Roles { get; set; }
+        public IDatabaseActions<User> Users { get; set; }
+        public IDatabaseActions<UserRoles> UserRoles { get; set; }
+
     }
 }
